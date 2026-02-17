@@ -1,16 +1,10 @@
 import type { Skill } from "@/types";
 import { mockSkills } from "@/mocks/skills";
 
-/**
- * Get all skills, sorted by order.
- */
 export async function getSkills(): Promise<Skill[]> {
   return [...mockSkills].sort((a, b) => a.order - b.order);
 }
 
-/**
- * Get skills grouped by category.
- */
 export async function getSkillsByCategory(): Promise<
   Record<string, Skill[]>
 > {

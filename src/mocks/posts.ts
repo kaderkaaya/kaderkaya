@@ -8,7 +8,7 @@ export const mockPosts: Post[] = [
       "A guide to designing and building scalable microservices architecture using Node.js, Docker, and message queues.",
     cover_image:
       "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&h=400&fit=crop",
-    external_url: "https://medium.com/@kaderkaya/scalable-microservices-nodejs",
+    external_url: "https://medium.com/@kaderkaaya/scalable-microservices-nodejs",
     published_at: "2025-01-15",
     tags: ["Node.js", "Microservices", "Docker"],
     featured: true,
@@ -21,7 +21,7 @@ export const mockPosts: Post[] = [
       "How to implement secure JWT-based authentication and role-based access control in your Node.js APIs.",
     cover_image:
       "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=400&fit=crop",
-    external_url: "https://medium.com/@kaderkaya/jwt-rbac-best-practices",
+    external_url: "https://medium.com/@kaderkaaya/jwt-rbac-best-practices",
     published_at: "2024-11-20",
     tags: ["Security", "JWT", "Node.js"],
     featured: true,
@@ -35,7 +35,7 @@ export const mockPosts: Post[] = [
     cover_image:
       "https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&h=400&fit=crop",
     external_url:
-      "https://medium.com/@kaderkaya/clean-architecture-backend",
+      "https://medium.com/@kaderkaaya/clean-architecture-backend",
     published_at: "2024-10-05",
     tags: ["Architecture", "TypeScript", "Backend"],
     featured: false,
