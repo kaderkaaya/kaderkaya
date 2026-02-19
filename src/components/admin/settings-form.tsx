@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { SiteSettings } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,17 +9,35 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { updateSettingsAction } from "@/app/admin/actions";
 
 export function SettingsForm({ initial }: { initial: SiteSettings }) {
+  const router = useRouter();
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
 
-  function handleSave() {
+  const allowedKeys: (keyof SiteSettings)[] = [
+    "name", "role", "location", "summary", "avatar_url", "email",
+    "github_url", "linkedin_url", "medium_url",
+  ];
+
+  async function handleSave() {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const payload = allowedKeys.reduce(
+        (acc, key) => ({ ...acc, [key]: form[key] }),
+        {} as Partial<SiteSettings>
+      );
+      const res = await updateSettingsAction(payload);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
       toast.success("Settings saved successfully.");
-    }, 500);
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -75,6 +94,19 @@ export function SettingsForm({ initial }: { initial: SiteSettings }) {
                   setForm({ ...form, summary: e.target.value })
                 }
                 rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="avatar_url">Avatar URL</Label>
+              <Input
+                id="avatar_url"
+                type="url"
+                value={form.avatar_url ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, avatar_url: e.target.value || null })
+                }
+                placeholder="https://..."
               />
             </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Project } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,18 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
+import {
+  createProjectAction,
+  updateProjectAction,
+  deleteProjectAction,
+  reorderProjectsAction,
+  listProjectsAction,
+} from "@/app/admin/actions";
+import {
+  SortableTableProvider,
+  SortableTableRow,
+  type ReorderItem,
+} from "@/components/admin/sortable-table";
 
 const emptyProject: Omit<Project, "id"> = {
   name: "",
@@ -39,10 +52,12 @@ const emptyProject: Omit<Project, "id"> = {
 };
 
 export function ProjectsTable({ initial }: { initial: Project[] }) {
+  const router = useRouter();
   const [items, setItems] = useState<Project[]>(initial);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyProject);
+  const [saving, setSaving] = useState(false);
 
   function openAdd() {
     setEditingId(null);
@@ -65,28 +80,59 @@ export function ProjectsTable({ initial }: { initial: Project[] }) {
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name) {
       toast.error("Project name is required.");
       return;
     }
-
-    if (editingId) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === editingId ? { ...form, id: editingId } : i))
-      );
-      toast.success("Project updated.");
-    } else {
-      const newItem: Project = { ...form, id: `proj-${Date.now()}` };
-      setItems((prev) => [...prev, newItem]);
-      toast.success("Project added.");
+    setSaving(true);
+    try {
+      if (editingId) {
+        const res = await updateProjectAction({ ...form, id: editingId });
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Project updated.");
+      } else {
+        const res = await createProjectAction(form);
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Project added.");
+      }
+      setOpen(false);
+      const listRes = await listProjectsAction();
+      if (listRes.data) setItems(listRes.data);
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  async function handleDelete(id: string) {
+    const res = await deleteProjectAction(id);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    const listRes = await listProjectsAction();
+    if (listRes.data) setItems(listRes.data);
     toast.success("Project deleted.");
+    router.refresh();
+  }
+
+  async function handleReorder(reorderItems: ReorderItem[]) {
+    const res = await reorderProjectsAction(reorderItems);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    const listRes = await listProjectsAction();
+    if (listRes.data) setItems(listRes.data);
+    toast.success("Order updated.");
+    router.refresh();
   }
 
   return (
@@ -112,70 +158,76 @@ export function ProjectsTable({ initial }: { initial: Project[] }) {
         </div>
       ) : (
         <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Links</TableHead>
-                <TableHead className="w-20">Featured</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell className="font-medium">{project.name}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {project.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {project.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{project.tags.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {project.repo_url ? "Repo" : ""}
-                    {project.repo_url && project.live_url ? " · " : ""}
-                    {project.live_url ? "Live" : ""}
-                  </TableCell>
-                  <TableCell>
-                    {project.featured ? (
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ) : (
-                      <Star className="h-4 w-4 text-muted-foreground/30" />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openEdit(project)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(project.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <SortableTableProvider
+            itemIds={items.map((i) => i.id)}
+            onReorder={handleReorder}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10" />
+                  <TableHead>Name</TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead>Links</TableHead>
+                  <TableHead className="w-20">Featured</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map((project) => (
+                  <SortableTableRow key={project.id} id={project.id}>
+                    <TableCell className="font-medium">{project.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {project.tags.slice(0, 3).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {project.tags.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{project.tags.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {project.repo_url ? "Repo" : ""}
+                      {project.repo_url && project.live_url ? " · " : ""}
+                      {project.live_url ? "Live" : ""}
+                    </TableCell>
+                    <TableCell>
+                      {project.featured ? (
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      ) : (
+                        <Star className="h-4 w-4 text-muted-foreground/30" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(project)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(project.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SortableTableProvider>
         </div>
       )}
 
@@ -282,11 +334,11 @@ export function ProjectsTable({ initial }: { initial: Project[] }) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {editingId ? "Save Changes" : "Add Project"}
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Save Changes" : "Add Project"}
             </Button>
           </DialogFooter>
         </DialogContent>

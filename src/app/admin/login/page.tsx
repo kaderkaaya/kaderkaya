@@ -56,9 +56,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Mock credentials: admin@kaderkaya.com / admin123
-          </p>
         </CardContent>
       </Card>
     </div>

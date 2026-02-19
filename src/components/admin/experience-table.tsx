@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Experience } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,18 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  createExperienceAction,
+  updateExperienceAction,
+  deleteExperienceAction,
+  reorderExperiencesAction,
+  listExperiencesAction,
+} from "@/app/admin/actions";
+import {
+  SortableTableProvider,
+  SortableTableRow,
+  type ReorderItem,
+} from "@/components/admin/sortable-table";
 
 const emptyExperience: Omit<Experience, "id"> = {
   company: "",
@@ -40,10 +53,12 @@ const emptyExperience: Omit<Experience, "id"> = {
 };
 
 export function ExperienceTable({ initial }: { initial: Experience[] }) {
+  const router = useRouter();
   const [items, setItems] = useState<Experience[]>(initial);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyExperience);
+  const [saving, setSaving] = useState(false);
 
   function openAdd() {
     setEditingId(null);
@@ -67,31 +82,59 @@ export function ExperienceTable({ initial }: { initial: Experience[] }) {
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.title || !form.company) {
       toast.error("Title and company are required.");
       return;
     }
-
-    if (editingId) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === editingId ? { ...form, id: editingId } : i))
-      );
-      toast.success("Experience updated.");
-    } else {
-      const newItem: Experience = {
-        ...form,
-        id: `exp-${Date.now()}`,
-      };
-      setItems((prev) => [...prev, newItem]);
-      toast.success("Experience added.");
+    setSaving(true);
+    try {
+      if (editingId) {
+        const res = await updateExperienceAction({ ...form, id: editingId });
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Experience updated.");
+      } else {
+        const res = await createExperienceAction(form);
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Experience added.");
+      }
+      setOpen(false);
+      const listRes = await listExperiencesAction();
+      if (listRes.data) setItems(listRes.data);
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  async function handleDelete(id: string) {
+    const res = await deleteExperienceAction(id);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    const listRes = await listExperiencesAction();
+    if (listRes.data) setItems(listRes.data);
     toast.success("Experience deleted.");
+    router.refresh();
+  }
+
+  async function handleReorder(reorderItems: ReorderItem[]) {
+    const res = await reorderExperiencesAction(reorderItems);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    const listRes = await listExperiencesAction();
+    if (listRes.data) setItems(listRes.data);
+    toast.success("Order updated.");
+    router.refresh();
   }
 
   return (
@@ -119,62 +162,68 @@ export function ExperienceTable({ initial }: { initial: Experience[] }) {
         </div>
       ) : (
         <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Period</TableHead>
-                <TableHead>Technologies</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((exp) => (
-                <TableRow key={exp.id}>
-                  <TableCell className="font-medium">{exp.title}</TableCell>
-                  <TableCell>{exp.company}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {exp.start_date} — {exp.is_current ? "Present" : exp.end_date}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {exp.technologies.slice(0, 3).map((tech) => (
-                        <Badge key={tech} variant="secondary" className="text-xs">
-                          {tech}
-                        </Badge>
-                      ))}
-                      {exp.technologies.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{exp.technologies.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openEdit(exp)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(exp.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <SortableTableProvider
+            itemIds={items.map((i) => i.id)}
+            onReorder={handleReorder}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10" />
+                  <TableHead>Title</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Technologies</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map((exp) => (
+                  <SortableTableRow key={exp.id} id={exp.id}>
+                    <TableCell className="font-medium">{exp.title}</TableCell>
+                    <TableCell>{exp.company}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {exp.start_date} — {exp.is_current ? "Present" : exp.end_date}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {exp.technologies.slice(0, 3).map((tech) => (
+                          <Badge key={tech} variant="secondary" className="text-xs">
+                            {tech}
+                          </Badge>
+                        ))}
+                        {exp.technologies.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{exp.technologies.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(exp)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(exp.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SortableTableProvider>
         </div>
       )}
 
@@ -296,11 +345,11 @@ export function ExperienceTable({ initial }: { initial: Experience[] }) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {editingId ? "Save Changes" : "Add Experience"}
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Save Changes" : "Add Experience"}
             </Button>
           </DialogFooter>
         </DialogContent>

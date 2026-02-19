@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { BlogPost } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,18 @@ import {
 import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import {
+  createBlogAction,
+  updateBlogAction,
+  deleteBlogAction,
+  reorderBlogsAction,
+  listBlogsAction,
+} from "@/app/admin/actions";
+import {
+  SortableTableProvider,
+  SortableTableRow,
+  type ReorderItem,
+} from "@/components/admin/sortable-table";
 
 function slugify(text: string) {
   return text
@@ -46,10 +59,12 @@ const emptyBlog: Omit<BlogPost, "id"> = {
 };
 
 export function BlogTable({ initial }: { initial: BlogPost[] }) {
+  const router = useRouter();
   const [items, setItems] = useState<BlogPost[]>(initial);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyBlog);
+  const [saving, setSaving] = useState(false);
 
   function openAdd() {
     setEditingId(null);
@@ -72,38 +87,61 @@ export function BlogTable({ initial }: { initial: BlogPost[] }) {
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.title || !form.content) {
       toast.error("Title and content are required.");
       return;
     }
-
     const finalSlug = form.slug || slugify(form.title);
-
-    if (editingId) {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === editingId
-            ? { ...form, slug: finalSlug, id: editingId }
-            : i
-        )
-      );
-      toast.success("Blog post updated.");
-    } else {
-      const newItem: BlogPost = {
-        ...form,
-        slug: finalSlug,
-        id: `blog-${Date.now()}`,
-      };
-      setItems((prev) => [...prev, newItem]);
-      toast.success("Blog post added.");
+    const payload = { ...form, slug: finalSlug };
+    setSaving(true);
+    try {
+      if (editingId) {
+        const res = await updateBlogAction({ ...payload, id: editingId });
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Blog post updated.");
+      } else {
+        const res = await createBlogAction(payload);
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("Blog post added.");
+      }
+      setOpen(false);
+      const listRes = await listBlogsAction();
+      if (listRes.data) setItems(listRes.data);
+      router.refresh();
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  async function handleDelete(id: string) {
+    const res = await deleteBlogAction(id);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    const listRes = await listBlogsAction();
+    if (listRes.data) setItems(listRes.data);
     toast.success("Blog post deleted.");
+    router.refresh();
+  }
+
+  async function handleReorder(reorderItems: ReorderItem[]) {
+    const res = await reorderBlogsAction(reorderItems);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    const listRes = await listBlogsAction();
+    if (listRes.data) setItems(listRes.data);
+    toast.success("Order updated.");
+    router.refresh();
   }
 
   return (
@@ -129,65 +167,71 @@ export function BlogTable({ initial }: { initial: BlogPost[] }) {
         </div>
       ) : (
         <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Published</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((blog) => (
-                <TableRow key={blog.id}>
-                  <TableCell className="font-medium">{blog.title}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(blog.published_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {blog.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        asChild
-                      >
-                        <Link href={`/blog/${blog.slug}`} target="_blank">
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openEdit(blog)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(blog.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <SortableTableProvider
+            itemIds={items.map((i) => i.id)}
+            onReorder={handleReorder}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10" />
+                  <TableHead>Title</TableHead>
+                  <TableHead>Published</TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map((blog) => (
+                  <SortableTableRow key={blog.id} id={blog.id}>
+                    <TableCell className="font-medium">{blog.title}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(blog.published_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {blog.tags.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          asChild
+                        >
+                          <Link href={`/blog/${blog.slug}`} target="_blank">
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(blog)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(blog.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </SortableTableProvider>
         </div>
       )}
 
@@ -294,11 +338,11 @@ export function BlogTable({ initial }: { initial: BlogPost[] }) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
-              {editingId ? "Save Changes" : "Publish Post"}
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Save Changes" : "Publish Post"}
             </Button>
           </DialogFooter>
         </DialogContent>
