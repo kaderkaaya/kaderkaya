@@ -5,6 +5,7 @@ import { getProjects } from "@/repositories/projects";
 import { getPosts } from "@/repositories/posts";
 import { getBlogs } from "@/repositories/blogs";
 import { getSkills } from "@/repositories/skills";
+import { VisitStatsCard } from "@/components/admin/visit-stats-card";
 
 export default async function AdminDashboard() {
   const [experiences, projects, posts, blogs, skills] = await Promise.all([
@@ -66,6 +67,7 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
         ))}
+        <VisitStatsCard />
       </div>
     </div>
   );

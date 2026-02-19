@@ -238,3 +238,18 @@ export async function listSkillsAction(): Promise<{ error?: string; data?: Skill
   const items = mapItems(out.data.items) as Skill[];
   return { data: sortByOrder(items) };
 }
+
+// ——— Visit stats ———
+export type VisitStats = {
+  totalVisits: number;
+  uniqueVisitors: number;
+  visitsByDay: { date: string; visits: number; unique: number }[];
+};
+
+export async function getVisitStatsAction(
+  days: number = 7
+): Promise<{ error?: string; data?: VisitStats }> {
+  return withToken((token) =>
+    apiGet<VisitStats>("/visit/stats", { days: String(days) }, token)
+  );
+}

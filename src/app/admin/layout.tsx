@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Admin — Kader Kaya CMS",
+  title: "Admin — Kader Kaya",
   description: "Content management system for Kader Kaya portfolio.",
 };
 
