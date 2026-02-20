@@ -33,7 +33,7 @@ export function AdminSidebar() {
     <aside className="flex h-screen w-64 flex-col border-r border-border/40 bg-card">
       <div className="flex h-16 items-center border-b border-border/40 px-6">
         <Link href="/admin" className="text-lg font-semibold tracking-tight">
-          Kader 💕
+          KADER KAYA
         </Link>
       </div>
 
