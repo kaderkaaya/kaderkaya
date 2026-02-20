@@ -2,12 +2,98 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { Components } from "react-markdown";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/fade-in";
 import { getBlogs, getBlogBySlug } from "@/repositories/blogs";
 import { SITE_URL } from "@/lib/site";
 import type { BlogPost } from "@/types";
+
+const markdownComponents: Components = {
+  h1: ({ children }) => (
+    <h1 className="mb-6 mt-10 text-2xl font-bold tracking-tight first:mt-0">
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="mb-4 mt-8 border-b border-border pb-2 text-xl font-semibold tracking-tight">
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="mb-3 mt-6 text-lg font-semibold">{children}</h3>
+  ),
+  p: ({ children }) => (
+    <p className="my-4 leading-7 text-foreground/90">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="my-4 list-disc space-y-1.5 pl-6 text-foreground/90">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="my-4 list-decimal space-y-1.5 pl-6 text-foreground/90">
+      {children}
+    </ol>
+  ),
+  li: ({ children }) => <li className="leading-7">{children}</li>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-4 border-l-4 border-muted-foreground/30 pl-4 italic text-muted-foreground">
+      {children}
+    </blockquote>
+  ),
+  pre: ({ children }) => (
+    <pre className="my-5 overflow-x-auto rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
+      {children}
+    </pre>
+  ),
+  code: ({ className, children }) => {
+    const isInline = !className;
+    if (isInline) {
+      return (
+        <code className="rounded bg-muted/70 px-1.5 py-0.5 font-mono text-sm">
+          {children}
+        </code>
+      );
+    }
+    return <code className="font-mono text-sm">{children}</code>;
+  },
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-muted-foreground"
+    >
+      {children}
+    </a>
+  ),
+  hr: () => <hr className="my-8 border-border" />,
+  strong: ({ children }) => (
+    <strong className="font-semibold text-foreground">{children}</strong>
+  ),
+  table: ({ children }) => (
+    <div className="my-6 w-full overflow-x-auto rounded-lg border border-border">
+      <table className="w-full min-w-[400px] border-collapse text-left text-sm">
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }) => (
+    <thead className="border-b border-border bg-muted/50">{children}</thead>
+  ),
+  tbody: ({ children }) => <tbody className="divide-y divide-border">{children}</tbody>,
+  tr: ({ children }) => <tr>{children}</tr>,
+  th: ({ children }) => (
+    <th className="px-4 py-3 font-semibold text-foreground">{children}</th>
+  ),
+  td: ({ children }) => (
+    <td className="px-4 py-3 text-foreground/90">{children}</td>
+  ),
+};
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -127,47 +213,10 @@ export default async function BlogPostPage({ params }: Props) {
       )}
 
       <FadeIn variant="fade-in-up" delay={240}>
-        <article className="prose prose-neutral max-w-none dark:prose-invert">
-          {blog.content.split("\n\n").map((paragraph, i) => {
-            if (paragraph.startsWith("## ")) {
-              return (
-                <h2 key={i} className="mt-8 mb-4 text-xl font-semibold">
-                  {paragraph.replace("## ", "")}
-                </h2>
-              );
-            }
-            if (paragraph.startsWith("```")) {
-              const lines = paragraph.split("\n");
-              const code = lines.slice(1, -1).join("\n");
-              return (
-                <pre
-                  key={i}
-                  className="my-4 overflow-x-auto rounded-lg bg-muted p-4"
-                >
-                  <code className="text-sm">{code}</code>
-                </pre>
-              );
-            }
-            if (paragraph.startsWith("- ")) {
-              const items = paragraph
-                .split("\n")
-                .filter((l) => l.startsWith("- "));
-              return (
-                <ul key={i} className="my-4 list-disc space-y-1 pl-6">
-                  {items.map((item, j) => (
-                    <li key={j} className="text-muted-foreground">
-                      {item.replace("- ", "")}
-                    </li>
-                  ))}
-                </ul>
-              );
-            }
-            return (
-              <p key={i} className="my-4 leading-relaxed text-muted-foreground">
-                {paragraph}
-              </p>
-            );
-          })}
+        <article className="blog-markdown">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {blog.content}
+          </ReactMarkdown>
         </article>
       </FadeIn>
     </div>
