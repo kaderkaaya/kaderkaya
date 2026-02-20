@@ -20,6 +20,7 @@ const imageHosts = [
   "avatars.googleusercontent.com",
   "scontent.xx.fbcdn.net",
   "scontent.cdninstagram.com",
+  "*.medium.com",
 ];
 
 const nextConfig: NextConfig = {
