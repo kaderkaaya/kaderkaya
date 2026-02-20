@@ -2,10 +2,25 @@ import type { Metadata } from "next";
 import { Mail, Github, Linkedin, BookOpen, MapPin } from "lucide-react";
 import { FadeIn } from "@/components/fade-in";
 import { getSettings } from "@/repositories/settings";
+import { SITE_URL } from "@/lib/site";
+
+const PAGE_URL = `${SITE_URL}/contact`;
 
 export const metadata: Metadata = {
-  title: "Contact — Kader Kaya",
-  description: "Get in touch with Kader Kaya.",
+  title: "Contact",
+  description: "Get in touch with Kader Kaya. Email, GitHub, LinkedIn, and Medium.",
+  alternates: { canonical: PAGE_URL },
+  openGraph: {
+    type: "website",
+    title: "Contact",
+    description: "Get in touch with Kader Kaya. Email, GitHub, LinkedIn, and Medium.",
+    url: PAGE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: "Contact",
+    description: "Get in touch with Kader Kaya. Email, GitHub, LinkedIn, and Medium.",
+  },
 };
 
 export default async function ContactPage() {

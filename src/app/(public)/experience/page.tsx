@@ -3,10 +3,25 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin } from "lucide-react";
 import { FadeIn } from "@/components/fade-in";
 import { getExperiences } from "@/repositories/experiences";
+import { SITE_URL } from "@/lib/site";
+
+const PAGE_URL = `${SITE_URL}/experience`;
 
 export const metadata: Metadata = {
-  title: "Experience — Kader Kaya",
-  description: "Professional work experience and career history.",
+  title: "Experience",
+  description: "Professional work experience and career history of Kader Kaya.",
+  alternates: { canonical: PAGE_URL },
+  openGraph: {
+    type: "website",
+    title: "Experience",
+    description: "Professional work experience and career history of Kader Kaya.",
+    url: PAGE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: "Experience",
+    description: "Professional work experience and career history of Kader Kaya.",
+  },
 };
 
 export default async function ExperiencePage() {

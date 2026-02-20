@@ -3,10 +3,25 @@ import { ExternalLink, Github } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/fade-in";
 import { getProjects } from "@/repositories/projects";
+import { SITE_URL } from "@/lib/site";
+
+const PAGE_URL = `${SITE_URL}/projects`;
 
 export const metadata: Metadata = {
-  title: "Projects — Kader Kaya",
-  description: "A showcase of personal and professional projects.",
+  title: "Projects",
+  description: "A showcase of personal and professional projects by Kader Kaya.",
+  alternates: { canonical: PAGE_URL },
+  openGraph: {
+    type: "website",
+    title: "Projects",
+    description: "A showcase of personal and professional projects by Kader Kaya.",
+    url: PAGE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: "Projects",
+    description: "A showcase of personal and professional projects by Kader Kaya.",
+  },
 };
 
 export default async function ProjectsPage() {

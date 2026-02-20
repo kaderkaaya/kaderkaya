@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { FadeIn } from "@/components/fade-in";
 import { getSkillsByCategory } from "@/repositories/skills";
+import { SITE_URL } from "@/lib/site";
 import {
   FileCode2,
   FileJson,
@@ -21,9 +22,23 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+const PAGE_URL = `${SITE_URL}/skills`;
+
 export const metadata: Metadata = {
-  title: "Skills — Kader Kaya",
-  description: "Technical skills and competencies.",
+  title: "Skills",
+  description: "Technical skills and competencies of Kader Kaya. Technologies and tools.",
+  alternates: { canonical: PAGE_URL },
+  openGraph: {
+    type: "website",
+    title: "Skills",
+    description: "Technical skills and competencies of Kader Kaya. Technologies and tools.",
+    url: PAGE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: "Skills",
+    description: "Technical skills and competencies of Kader Kaya. Technologies and tools.",
+  },
 };
 
 const iconMap: Record<string, LucideIcon> = {

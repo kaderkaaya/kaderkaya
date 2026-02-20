@@ -4,11 +4,28 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/fade-in";
 import { getPosts } from "@/repositories/posts";
+import { SITE_URL } from "@/lib/site";
+
+const PAGE_URL = `${SITE_URL}/writing`;
 
 export const metadata: Metadata = {
-  title: "Writing — Kader Kaya",
+  title: "Writing",
   description:
-    "Articles and blog posts on web development and software engineering.",
+    "Articles and blog posts by Kader Kaya on web development and software engineering.",
+  alternates: { canonical: PAGE_URL },
+  openGraph: {
+    type: "website",
+    title: "Writing",
+    description:
+      "Articles and blog posts by Kader Kaya on web development and software engineering.",
+    url: PAGE_URL,
+  },
+  twitter: {
+    card: "summary",
+    title: "Writing",
+    description:
+      "Articles and blog posts by Kader Kaya on web development and software engineering.",
+  },
 };
 
 export default async function WritingPage() {

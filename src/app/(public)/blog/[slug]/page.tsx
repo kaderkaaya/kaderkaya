@@ -6,10 +6,14 @@ import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/fade-in";
 import { getBlogs, getBlogBySlug } from "@/repositories/blogs";
+import { SITE_URL } from "@/lib/site";
+import type { BlogPost } from "@/types";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
+
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const blogs = await getBlogs();
@@ -21,9 +25,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const blog = await getBlogBySlug(slug);
   if (!blog) return { title: "Not Found" };
 
+  const canonicalUrl = `${SITE_URL}/blog/${slug}`;
+  const ogImages = blog.cover_image
+    ? [{ url: blog.cover_image, width: 1200, height: 630, alt: blog.title }]
+    : [];
+
   return {
-    title: `${blog.title} — Kader Kaya`,
+    title: blog.title,
     description: blog.excerpt,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: "article",
+      title: blog.title,
+      description: blog.excerpt,
+      url: canonicalUrl,
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: blog.title,
+      description: blog.excerpt,
+    },
+  };
+}
+
+function buildArticleJsonLd(blog: BlogPost) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: blog.title,
+    datePublished: blog.published_at,
+    dateModified: blog.published_at,
+    author: { "@type": "Person", name: "Kader Kaya" },
   };
 }
 
@@ -35,8 +68,15 @@ export default async function BlogPostPage({ params }: Props) {
     notFound();
   }
 
+  const articleJsonLd = buildArticleJsonLd(blog);
+
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <div className="mx-auto max-w-3xl px-6 py-16">
       <FadeIn variant="fade-in-left">
         <Link
           href="/blog"
@@ -131,5 +171,6 @@ export default async function BlogPostPage({ params }: Props) {
         </article>
       </FadeIn>
     </div>
+    </>
   );
 }
