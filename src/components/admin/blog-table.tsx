@@ -177,6 +177,7 @@ export function BlogTable({ initial }: { initial: BlogPost[] }) {
                   <TableHead className="w-10" />
                   <TableHead>Title</TableHead>
                   <TableHead>Published</TableHead>
+                  <TableHead className="text-center">Read Count</TableHead>
                   <TableHead>Tags</TableHead>
                   <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
@@ -187,6 +188,9 @@ export function BlogTable({ initial }: { initial: BlogPost[] }) {
                     <TableCell className="font-medium">{blog.title}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(blog.published_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-center tabular-nums text-muted-foreground">
+                      {blog.read_count ?? 0}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">

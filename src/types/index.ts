@@ -57,6 +57,7 @@ export interface BlogPost {
   published_at: string;
   tags: string[];
   order: number;
+  read_count?: number;
 }
 
 export interface Skill {
