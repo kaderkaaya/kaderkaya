@@ -209,9 +209,6 @@ export function BlogTable({ initial }: { initial: BlogPost[] }) {
                           className="h-8 w-8"
                           asChild
                         >
-                          <Link href={`/blog/${blog.slug}`} target="_blank">
-                            <Eye className="h-4 w-4" />
-                          </Link>
                         </Button>
                         <Button
                           variant="ghost"
