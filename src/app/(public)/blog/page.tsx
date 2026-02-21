@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/fade-in";
 import { getBlogs } from "@/repositories/blogs";
+import { getReadingTimeMinutes } from "@/lib/reading-time";
 
 export const metadata: Metadata = {
   title: "Blog — Kader Kaya",
@@ -49,7 +50,7 @@ export default async function BlogPage() {
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
                   {blog.excerpt}
                 </p>
-                <div className="mt-4 flex items-center gap-3">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
                   <span className="text-xs text-muted-foreground">
                     {new Date(blog.published_at).toLocaleDateString("en-US", {
                       year: "numeric",
@@ -57,14 +58,17 @@ export default async function BlogPage() {
                       day: "numeric",
                     })}
                   </span>
-                  <div className="flex gap-1.5">
+                  <span className="text-xs text-muted-foreground">
+                    {getReadingTimeMinutes(blog.content)} min
+                  </span>
+                </div>
+                <div className="flex gap-1.5 mt-2 flex-wrap">
                     {blog.tags.map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
                   </div>
-                </div>
               </div>
             </Link>
           </FadeIn>

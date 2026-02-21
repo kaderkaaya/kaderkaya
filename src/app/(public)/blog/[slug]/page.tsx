@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { FadeIn } from "@/components/fade-in";
 import { getBlogs, getBlogBySlug } from "@/repositories/blogs";
 import { SITE_URL } from "@/lib/site";
+import { getReadingTimeMinutes } from "@/lib/reading-time";
 import type { BlogPost } from "@/types";
 
 const markdownComponents: Components = {
@@ -178,7 +179,7 @@ export default async function BlogPostPage({ params }: Props) {
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             {blog.title}
           </h1>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <span className="text-sm text-muted-foreground">
               {new Date(blog.published_at).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -186,14 +187,17 @@ export default async function BlogPostPage({ params }: Props) {
                 day: "numeric",
               })}
             </span>
-            <div className="flex gap-1.5">
+            <span className="text-sm text-muted-foreground">
+              {getReadingTimeMinutes(blog.content)} min
+            </span>
+          </div>
+          <div className="flex gap-1.5 mt-2">
               {blog.tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>
               ))}
             </div>
-          </div>
         </header>
       </FadeIn>
 
