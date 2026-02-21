@@ -9,10 +9,10 @@ const VISIT_RECORDED_KEY = "vk_visit_recorded";
 
 function getOrCreateSessionId(): string {
   if (typeof window === "undefined") return "";
-  let sid = sessionStorage.getItem(VISIT_SESSION_KEY);
+  let sid = localStorage.getItem(VISIT_SESSION_KEY);
   if (!sid) {
     sid = `s_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-    sessionStorage.setItem(VISIT_SESSION_KEY, sid);
+    localStorage.setItem(VISIT_SESSION_KEY, sid);
   }
   return sid;
 }
