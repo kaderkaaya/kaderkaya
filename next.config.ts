@@ -21,6 +21,9 @@ const imageHosts = [
   "scontent.xx.fbcdn.net",
   "scontent.cdninstagram.com",
   "*.medium.com",
+  "github.com",
+  "*.githubusercontent.com",
+  "*.github.com",
 ];
 
 const nextConfig: NextConfig = {
