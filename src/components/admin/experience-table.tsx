@@ -265,7 +265,7 @@ export function ExperienceTable({ initial }: { initial: Experience[] }) {
               <Input
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
-                placeholder="Antalya, Türkiye"
+                placeholder="İstanbul, Türkiye"
               />
             </div>
 
